@@ -5,7 +5,7 @@
 (require (for-syntax racket/function))
 
 ; ------------------------------------------------------------------------------
-; Parse Markdown with into a readable sexpr format
+; Parse Markdown into a readable sexpr format
 ;
 ; MILESTONE 1: be able to migrate my old blog posts
 ;   - write grammar for this sexpr.
@@ -45,29 +45,50 @@
 ;            <kvs>*
 ;            ---
 
-#;(define yaml-block-parser
-  (define BEGIN-END (>> (repeat 3 (char #\-)) $newline))
 
-  (define parse-ident
-    (parser-compose
-     (c  <- (satisfy char-lower-case?))
-     (cs <- (many (satisfy (λ (c)
-                             (or (char-alphabetic? c)
-                                 (char-numeric? c)
-                                 (char=? #\_ c)
-                                 (char=? #\- c))))))
-     (return (list->string (cons c cs)))))
-
-  (define parse-string ...)
-
-  (define parse-string-lit ...)
-  (define parse-num-lit ...)
-  (define parse-standard-date ...)
-  (define parse-yaml-list ...
-    (define parse-yaml-list1 ...))
-  (define parse-yaml-kvs ...)
-
-)
+(define yaml-block-parser
+  (let ()
+    (define BEGIN-END (>> (repeat 3 (char #\-)) $newline))
+    
+    (define parse-ident
+      (parser-compose
+       (c  <- (satisfy char-lower-case?))
+       (cs <- (many (satisfy (λ (c)
+                               (or (char-alphabetic? c)
+                                   (char-numeric? c)
+                                   (char=? #\_ c)
+                                   (char=? #\- c))))))
+       (return (list->string (cons c cs)))))
+    
+    (define parse-string-lit
+      ; string can be either single or double quotes
+      (parser-compose
+       (open <- (<or> (char #\") (char #\')))
+       (str  <- (many $anyChar 
+                      #:till (if (char=? open #\")
+                                 (char #\")
+                                 (char #\')))) 
+       (return (list->string str))))
+    
+    (define parse-num-lit       
+      (let ((to-number (λ (nls) (string->number (list->string nls)))))
+        (>>= (many1 $digit)
+             (λ (int)
+               (>>= (<or> (char #\.) (return null))
+                    (λ (DOT)
+                      (if (null? DOT) (return (to-number int))
+                          (>>= (many1 $digit)
+                               (λ (frac) (return (to-number `(,@int ,DOT ,@frac))))))))))))
+    #;(module+ test
+        (parse-result parse-num-lit "1234")
+        (parse-result parse-num-lit "1234.5678")) 
+    
+   ;(define parse-standard-date ...)
+   ; (define parse-yaml-list ...
+   ;   (define parse-yaml-list1 ...))
+   ; (define parse-yaml-kvs ...)
+    '()
+))
 
 #;(define markdown-parser ...)
 
