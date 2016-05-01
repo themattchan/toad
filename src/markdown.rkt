@@ -72,25 +72,25 @@
     
     (define parse-num-lit       
       (let ([parse-number (many1 $digit)]
-            [to-number (λ (nls) (string->number (list->string nls)))])        
+            [to-number (compose string->number list->string)])        
         (>>= parse-number
              (λ (int)
                (<or>
-                 (>>= (parser-cons (char #\.) parse-number)                    
-                      (λ (frac) (return (to-number (append int frac)))))
+                (>>= (parser-cons (char #\.) parse-number)                    
+                     (λ (frac) (return (to-number (append int frac)))))
                 (return (to-number int)))))))
-             
-            
-#;(module+ test
+    
+    
+    #;(module+ test
         (parse-result parse-num-lit "1234")
         (parse-result parse-num-lit "1234.5678")) 
     
-   ;(define parse-standard-date ...)
-   ; (define parse-yaml-list ...
-   ;   (define parse-yaml-list1 ...))
-   ; (define parse-yaml-kvs ...)
+    ;(define parse-standard-date ...)
+    ; (define parse-yaml-list ...
+    ;   (define parse-yaml-list1 ...))
+    ; (define parse-yaml-kvs ...)
     '()
-))
+    ))
 
 #;(define markdown-parser ...)
 
