@@ -15,7 +15,7 @@
 ;
 ; MILESTONE 2: extend markdown with inlinable sexprs
 
-(define-syntax (repeat stx)
+(define-syntax (parser-rep stx)
   (syntax-case stx ()
     [(_ n parser) ; =>
      (let ((reps (build-list (syntax->datum #'n) (const #'parser))))
@@ -48,7 +48,7 @@
 
 (define yaml-block-parser
   (let ()
-    (define BEGIN-END (>> (repeat 3 (char #\-)) $newline))
+    (define BEGIN-END (>> (parser-rep 3 (char #\-)) $newline))
     
     (define parse-ident
       (parser-compose
