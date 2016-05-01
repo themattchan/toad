@@ -19,7 +19,7 @@
   (syntax-case stx ()
     [(_ n parser) ; =>
      (let ((reps (build-list (syntax->datum #'n) (λ (_) #'parser))))
-         #`(parser-seq #,@reps))]))
+       #`(parser-seq #,@reps))]))
 
 (parse-result  (>> (repeat 3 (char #\-)) $newline) "---\n")
 
