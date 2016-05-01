@@ -2,6 +2,7 @@
 
 (require racket/function)
 (require parsack)
+;(require (for-syntax parsack racket/base))
 
 ; ------------------------------------------------------------------------------
 ; Parse Markdown with into a readable sexpr format
@@ -14,13 +15,14 @@
 ;
 ; MILESTONE 2: extend markdown with inlinable sexprs
 
-(define-syntax-rule (repeat n parser)
-  (let ((reps (build-list (syntax->datum n)
-                                 (λ (_) parser))))
-    (datum->syntax
-     `(,#'parser-seq ,@reps))))
+(define-syntax (repeat stx)
+  (syntax-case stx ()
+    [(_ n parser) ; =>
+     (let ((reps (build-list (syntax->datum #'n) (λ (_) #'parser))))
+         #`(parser-seq #,@reps))]))
 
- (parse-result  (satisfy (regexp-match) #rx"Ll") "a")
+(parse-result  (>> (repeat 3 (char #\-)) $newline) "---\n")
+
 ; YAML used in my Jekyll posts:
 ;
 ; <id>     ::= [a-z][\w|-]*
@@ -48,12 +50,12 @@
 
   (define parse-ident
     (parser-compose
-     (c <- (satisfy char-lower-case?))
-     (cs <-  (many (satisfy (λ (c)
-                              (or (char-alphabetic? c)
-                                  (char-numeric? c)
-                                  (char=? #\_ c)
-                                  (char=? #\- c))))))
+     (c  <- (satisfy char-lower-case?))
+     (cs <- (many (satisfy (λ (c)
+                             (or (char-alphabetic? c)
+                                 (char-numeric? c)
+                                 (char=? #\_ c)
+                                 (char=? #\- c))))))
      (return (list->string (cons c cs)))))
 
   (define parse-string ...)
