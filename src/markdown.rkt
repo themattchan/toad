@@ -21,7 +21,7 @@
      (let ((reps (build-list (syntax->datum #'n) (const #'parser))))
        #`(parser-seq #,@reps))]))
 
-(parse-result  (>> (repeat 3 (char #\-)) $newline) "---\n")
+;(parse-result  (>> (repeat 3 (char #\-)) $newline) "---\n")
 
 ; YAML used in my Jekyll posts:
 ;
@@ -71,15 +71,17 @@
        (return (list->string str))))
     
     (define parse-num-lit       
-      (let ((to-number (λ (nls) (string->number (list->string nls)))))
-        (>>= (many1 $digit)
+      (let ([parse-number (many1 $digit)]
+            [to-number (λ (nls) (string->number (list->string nls)))])        
+        (>>= parse-number
              (λ (int)
-               (>>= (<or> (char #\.) (return null))
-                    (λ (DOT)
-                      (if (null? DOT) (return (to-number int))
-                          (>>= (many1 $digit)
-                               (λ (frac) (return (to-number `(,@int ,DOT ,@frac))))))))))))
-    #;(module+ test
+               (<or>
+                 (>>= (parser-cons (char #\.) parse-number)                    
+                      (λ (frac) (return (to-number (append int frac)))))
+                (return (to-number int)))))))
+             
+            
+#;(module+ test
         (parse-result parse-num-lit "1234")
         (parse-result parse-num-lit "1234.5678")) 
     
