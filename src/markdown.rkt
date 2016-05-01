@@ -2,7 +2,7 @@
 
 (require racket/function)
 (require parsack)
-;(require (for-syntax parsack racket/base))
+(require (for-syntax racket/function))
 
 ; ------------------------------------------------------------------------------
 ; Parse Markdown with into a readable sexpr format
@@ -18,7 +18,7 @@
 (define-syntax (repeat stx)
   (syntax-case stx ()
     [(_ n parser) ; =>
-     (let ((reps (build-list (syntax->datum #'n) (λ (_) #'parser))))
+     (let ((reps (build-list (syntax->datum #'n) (const #'parser))))
        #`(parser-seq #,@reps))]))
 
 (parse-result  (>> (repeat 3 (char #\-)) $newline) "---\n")
@@ -45,7 +45,7 @@
 ;            <kvs>*
 ;            ---
 
-(define yaml-block-parser
+#;(define yaml-block-parser
   (define BEGIN-END (>> (repeat 3 (char #\-)) $newline))
 
   (define parse-ident
@@ -69,6 +69,6 @@
 
 )
 
-(define markdown-parser ...)
+#;(define markdown-parser ...)
 
-(define blog-post-parser ...)
+#;(define blog-post-parser ...)
