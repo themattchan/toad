@@ -72,7 +72,7 @@
 
 (define yaml-block-parser
   (let ()
-    (define BEGIN-END (>> (parser-rep 3 (char #\-)) $newline))
+    (define BEGIN-END (>> (parser-rep 3 (char #\-)) $eol))
     
     (define parse-ident
       (parser-compose
@@ -154,10 +154,12 @@
            (return (if (nothing? v) nothing
                        (just (yaml-kv k v))))))
         
-        (maybe-mconcat (many1 parse-yaml-kv1))))
+        (>>= (many1 parse-yaml-kv1) maybe-mconcat)))
     
-    '()
-    ))
+    (parser-one
+     BEGIN-END
+     (~> parse-yaml-kvs)
+     BEGIN-END)))
 
 #;(define markdown-parser ...)
 
