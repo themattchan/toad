@@ -1,5 +1,6 @@
 ;; HTML template generation
 
-# lang scribble/html
+;# lang scribble/html
+# lang racket
 
-(req
+(require sxml)
