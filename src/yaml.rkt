@@ -150,9 +150,8 @@
 
 ; ... -> maybe [kv]
 (define p/yaml-kvs
-  (>>=
-  (many1 (parser-seq parse-yaml-kv1 (~ $spaces)))
-      (compose return list/mconcat)))
+  (>>= (many1 (parser-seq parse-yaml-kv1 (~ $spaces)))
+       (compose return list/mconcat)))
          
 (module+ test
   (run p/yaml-kvs
