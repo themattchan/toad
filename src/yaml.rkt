@@ -150,21 +150,15 @@
 
 ; ... -> maybe [kv]
 (define p/yaml-kvs
- ; (>>=
+  (>>=
   (many1 (parser-seq parse-yaml-kv1 (~ $spaces)))
-   ;   list/mconcat)
-         )
-
-#;(module+ test
-  (check-equal? (parse-result p/yaml-kvs
-"foo: \"bar\"
-date: 2016-04-01
-")
-                `(,(yaml-kv 'foo "bar")
-                 ,(yaml-kv 'date (mk-date 01 04 2016)))
-                ))
-
-
+      (compose return list/mconcat)))
+         
+(module+ test
+  (run p/yaml-kvs
+       ("foo: \"bar\"\ndate: 2016-04-01\n"
+       => (list (yaml-kv 'foo "bar")
+                (yaml-kv 'date (mk-date 01 04 2016))))))
 
 (define p/yaml-block
   (parser-one
@@ -172,7 +166,7 @@ date: 2016-04-01
    (~> p/yaml-kvs)
    BEGIN-END))
 
-#;(parse-result
+(parse-result
  p/yaml-block
  "---
 layout: post
@@ -184,3 +178,4 @@ tags:
 - functional-programming
 ---
 ")
+ 
