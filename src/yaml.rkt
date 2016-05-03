@@ -9,8 +9,8 @@
   (require rackunit)
 
   (define-syntax run
-    (syntax-rules (<- =>)
-      [(_ parser (<- string => expect) ...) ; =>
+    (syntax-rules  (=>)
+      [(_ parser (string => expect) ...) ; =>
        (let ()
            (check-equal? (parse-result parser string)
                          expect) ...)]))
@@ -62,10 +62,10 @@
 
 (module+ test
   (run p/ident
-       (<- "foo"          => 'foo)
-       (<- "foo-bar"      => 'foo-bar)
-       (<- "foo_bar"      => 'foo_bar)
-       (<- "foo-bar-1234" => 'foo-bar-1234)))
+       ("foo"          => 'foo)
+       ("foo-bar"      => 'foo-bar)
+       ("foo_bar"      => 'foo_bar)
+       ("foo-bar-1234" => 'foo-bar-1234)))
 
   
 (define p/string-lit
@@ -89,8 +89,8 @@
 
 (module+ test
   (run p/num-lit
-       (<- "1234" => 1234)
-       (<- "1234.5678" => 1234.5678)))
+       ("1234" => 1234)
+       ("1234.5678" => 1234.5678)))
 
 (define p/date
   ; put date in standard Racket date struct
@@ -107,7 +107,7 @@
 
 (module+ test
   (run p/date
-       (<- "2016-04-01" => (mk-date 01 04 2016))))
+       ("2016-04-01" => (mk-date 01 04 2016))))
 
 (define p/yaml-list
   (let ()
@@ -126,8 +126,8 @@
 
 (module+ test  
   (run p/yaml-list
-       (<- "- foo\n- bar\n- \"hello world\"\n"
-           => '(foo bar "hello world"))))
+       ("- foo\n- bar\n- \"hello world\"\n"
+        => '(foo bar "hello world"))))
 
 (define parse-yaml-kv1
   (parser-compose
@@ -145,8 +145,8 @@
 
 (module+ test
   (run parse-yaml-kv1
-       (<- "foo: \"bar\"" =>
-                (yaml-kv 'foo "bar"))))
+       ("foo: \"bar\""
+        => (yaml-kv 'foo "bar"))))
 
 ; ... -> maybe [kv]
 (define p/yaml-kvs
