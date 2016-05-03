@@ -48,7 +48,7 @@
         d m y
         0 0 #f 0))
 
-(struct yaml-kv (key val) #:transparent)
+;(struct yaml-kv (key val) #:transparent)
 
 ; Parsers
 
@@ -147,12 +147,12 @@
                (>> $eol FAIL)
                ))
    $spaces
-   (return (success? v (yaml-kv k v)))))
+   (return (success? v (cons k v)))))
 
 (module+ test
   (run parse-yaml-kv1
        ("foo: \"bar\""
-        => (yaml-kv 'foo "bar"))))
+        => (cons 'foo "bar"))))
 
 (define p/yaml-kvs
   (>>= (many1 (parser-seq parse-yaml-kv1 (~ $spaces)))
@@ -161,8 +161,8 @@
 (module+ test
   (run p/yaml-kvs
        ("foo: \"bar\"\ndate: 2016-04-01\n"
-       => (list (yaml-kv 'foo "bar")
-                (yaml-kv 'date (mk-date 01 04 2016))))))
+       => (list (cons 'foo "bar")
+                (cons 'date (mk-date 01 04 2016))))))
 
 (define p/yaml-block
   (parser-one BEGIN-END (~> p/yaml-kvs) BEGIN-END))
