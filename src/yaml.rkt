@@ -12,8 +12,8 @@
     (syntax-rules  (=>)
       [(_ parser (string => expect) ...) ; =>
        (let ()
-           (check-equal? (parse-result parser string)
-                         expect) ...)]))
+         (check-equal? (parse-result parser string) expect)
+         ...)]))
   )
 
 
