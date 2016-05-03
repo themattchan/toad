@@ -1,8 +1,12 @@
 #lang racket
 
-(require "parser-extras.rkt")
+(require "parser-extras.rkt"
+         #;"maybe.rkt")
+
 (provide p/yaml-block)
 
+(module+ test
+  (require rackunit))
 ;(parse-result  (>> (repeat 3 (char #\-)) $newline) "---\n")
 
 ; YAML used in my Jekyll posts:
@@ -27,33 +31,10 @@
 ;            <kvs>*
 ;            ---
 
-; Maybe Monoid
-; TODO: extract generic interface, modularize
-
-(struct maybe (filled? thingy))
-
-(define (just x) (maybe #t x))
-(define (from-just x) (maybe-thingy x))
-(define nothing (maybe #f '()))
-(define (nothing? m)
-  (if (maybe? m)
-      (not (maybe-filled? m))
-      #f))
-
-
-(define maybe-mempty nothing)
-
-; maybe a -> maybe b -> (a -> b -> c) -> maybe c
-(define (maybe-mplus m1 m2 #:combiner [f cons])
-  (cond
-    [(nothing? m1) m2]
-    [(nothing? m2) m1]
-    [else (f (from-just m1) (from-just m2))]))
-
-(define (maybe-mconcat maybes)
-  (foldr maybe-mplus maybe-mempty maybes))
-(maybe-mconcat (list (just 1) (just 2) nothing))
-
+(define (mk-date d m y)
+  (date 0 0 0
+        d m y
+        0 0 #f 0))
 
 (struct yaml-kv (key val) #:transparent)
 
@@ -88,23 +69,26 @@
                  (λ (frac) (return (ret-number (append int frac)))))
             (return (ret-number int)))))))
 
-
-#;(module+ test
-    (parse-result parse-num-lit "1234")
-    (parse-result parse-num-lit "1234.5678")) 
+(module+ test
+  (check-equal? (parse-result p/num-lit "1234") 1234)
+  (check-equal? (parse-result p/num-lit "1234.5678") 1234.5678)) 
 
 (define p/date
+  ; put date in standard Racket date struct
   (parser-compose
    (y <- (parser-rep 4 $digit))
    (char #\-)
    (m <- (parser-rep 2 $digit))
    (char #\-)
    (d <- (parser-rep 2 $digit))
-   (return (date 0 0 0
-                 (ret-number d)
-                 (ret-number m)
-                 (ret-number y)
-                 0 0 #f 0))))  
+   (return (mk-date
+            (ret-number d)
+            (ret-number m)
+            (ret-number y)))))
+
+(module+ test
+  (check-equal? (parse-result p/date "2016-04-01")
+                (mk-date 01 04 2016)))
 
 (define p/yaml-list
   (let ()
@@ -131,36 +115,32 @@
        (v <- (<or> p/ident
                    p/num-lit
                    p/date
-                   p/string-lit
+                   p/string-lit            
                    (>> $eol p/yaml-list)
-                   (return nothing)
+                   (>> $eol FAIL)
                    ))
-       (return (if (nothing? v) nothing
-                   (just (yaml-kv k v))))))
+       (return (success? v (yaml-kv k v)))))
     
     ;(>>=
-     (many1 parse-yaml-kv1)))
-         ;maybe-mconcat)))
+     (many1 (parser-seq parse-yaml-kv1 (~ $spaces)))
+     ;    list/mconcat)
+         ))
 
 (define p/yaml-block
   (parser-one
-   ; BEGIN-END
+   BEGIN-END
    (~> p/yaml-kvs)
-   ;BEGIN-END)
-   ))
+   BEGIN-END))
 
-(map from-just(parse-result
- (parser-one
-  ; BEGIN-END
-  (~> p/yaml-kvs)
-  ;BEGIN-END)
-  )
- "layout: post
+(parse-result
+p/yaml-block
+ "---
+layout: post
 title: \"Thinking with types, an example\"
 subtitle:
 date: 2014-12-12
 updated: 2016-03-12
 tags:
 - functional-programming
+---
 ")
-)

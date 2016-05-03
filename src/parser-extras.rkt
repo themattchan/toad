@@ -14,3 +14,14 @@
        #`(parser-seq #,@reps))]))
 
 (define ret-number (compose string->number list->string))
+
+(define FAIL (const 'fail))
+
+; monoid
+(define (success? v ret)
+  (if (not (eq? 'fail v))
+      ret
+      '()))
+
+(define (list/mconcat xs)
+  (apply append xs))
