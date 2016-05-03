@@ -41,6 +41,8 @@
 ;            <kvs>*
 ;            ---
 
+; Helpers and data structures
+
 (define (mk-date d m y)
   (date 0 0 0
         d m y
@@ -48,9 +50,12 @@
 
 (struct yaml-kv (key val) #:transparent)
 
+; Parsers
+
 (define BEGIN-END (>> (parser-rep 3 (char #\-)) $eol))
 
 (define p/ident
+  ; idents are atoms
   (parser-compose
    (c  <- (satisfy char-lower-case?))
    (cs <- (many (satisfy (λ (c)
@@ -133,14 +138,15 @@
   (parser-compose
    (k <- p/ident)
    (char #\:)
-   $spaces
-   (v <- (<or> p/ident
+   $spaces ; shouldn't be spaces... newlines are signifcant
+   (v <- (<or> (>> $eol p/yaml-list)
+               p/ident
                p/date
                p/num-lit                  
-               p/string-lit            
-               (>> $eol p/yaml-list)
+               p/string-lit                           
                (>> $eol FAIL)
                ))
+   $spaces
    (return (success? v (yaml-kv k v)))))
 
 (module+ test
@@ -148,7 +154,6 @@
        ("foo: \"bar\""
         => (yaml-kv 'foo "bar"))))
 
-; ... -> maybe [kv]
 (define p/yaml-kvs
   (>>= (many1 (parser-seq parse-yaml-kv1 (~ $spaces)))
        (compose return list/mconcat)))
@@ -160,14 +165,11 @@
                 (yaml-kv 'date (mk-date 01 04 2016))))))
 
 (define p/yaml-block
-  (parser-one
-   BEGIN-END
-   (~> p/yaml-kvs)
-   BEGIN-END))
+  (parser-one BEGIN-END (~> p/yaml-kvs) BEGIN-END))
 
 (parse-result
  p/yaml-block
- "---
+"---
 layout: post
 title: \"Thinking with types, an example\"
 subtitle:
