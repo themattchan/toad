@@ -6,7 +6,17 @@
 (provide p/yaml-block)
 
 (module+ test
-  (require rackunit))
+  (require rackunit)
+
+  (define-syntax run
+    (syntax-rules (<- =>)
+      [(_ parser (<- string => expect) ...) ; =>
+       (let ()
+           (check-equal? (parse-result parser string)
+                         expect) ...)]))
+  )
+
+
 ;(parse-result  (>> (repeat 3 (char #\-)) $newline) "---\n")
 
 ; YAML used in my Jekyll posts:
@@ -48,8 +58,16 @@
                                (char-numeric? c)
                                (char=? #\_ c)
                                (char=? #\- c))))))
-   (return (list->string (cons c cs)))))
+   (return (string->symbol (list->string (cons c cs))))))
 
+(module+ test
+  (run p/ident
+       (<- "foo"          => 'foo)
+       (<- "foo-bar"      => 'foo-bar)
+       (<- "foo_bar"      => 'foo_bar)
+       (<- "foo-bar-1234" => 'foo-bar-1234)))
+
+  
 (define p/string-lit
   ; string can be either single or double quotes
   (parser-compose
@@ -70,8 +88,9 @@
             (return (ret-number int)))))))
 
 (module+ test
-  (check-equal? (parse-result p/num-lit "1234") 1234)
-  (check-equal? (parse-result p/num-lit "1234.5678") 1234.5678)) 
+  (run p/num-lit
+       (<- "1234" => 1234)
+       (<- "1234.5678" => 1234.5678)))
 
 (define p/date
   ; put date in standard Racket date struct
@@ -87,8 +106,8 @@
             (ret-number y)))))
 
 (module+ test
-  (check-equal? (parse-result p/date "2016-04-01")
-                (mk-date 01 04 2016)))
+  (run p/date
+       (<- "2016-04-01" => (mk-date 01 04 2016))))
 
 (define p/yaml-list
   (let ()
@@ -97,34 +116,55 @@
        (char #\-) $space
        ; keeps squiggle arrow only
        (~> (<or> p/ident
-                   p/num-lit
-                   p/date
-                   p/string-lit))
+                 p/date
+                 p/num-lit                 
+                 p/string-lit))
        $eol))
     
     (many1 parse-yaml-list1)))
 
+
+(module+ test  
+  (run p/yaml-list
+       (<- "- foo\n- bar\n- \"hello world\"\n"
+           => '(foo bar "hello world"))))
+
+(define parse-yaml-kv1
+  (parser-compose
+   (k <- p/ident)
+   (char #\:)
+   $spaces
+   (v <- (<or> p/ident
+               p/date
+               p/num-lit                  
+               p/string-lit            
+               (>> $eol p/yaml-list)
+               (>> $eol FAIL)
+               ))
+   (return (success? v (yaml-kv k v)))))
+
+(module+ test
+  (run parse-yaml-kv1
+       (<- "foo: \"bar\"" =>
+                (yaml-kv 'foo "bar"))))
+
 ; ... -> maybe [kv]
 (define p/yaml-kvs
-  (let ()
-    (define parse-yaml-kv1
-      (parser-compose
-       (k <- p/ident)
-       (char #\:)
-       $spaces
-       (v <- (<or> p/ident
-                   p/num-lit
-                   p/date
-                   p/string-lit            
-                   (>> $eol p/yaml-list)
-                   (>> $eol FAIL)
-                   ))
-       (return (success? v (yaml-kv k v)))))
-    
-    ;(>>=
-     (many1 (parser-seq parse-yaml-kv1 (~ $spaces)))
-     ;    list/mconcat)
-         ))
+ ; (>>=
+  (many1 (parser-seq parse-yaml-kv1 (~ $spaces)))
+   ;   list/mconcat)
+         )
+
+#;(module+ test
+  (check-equal? (parse-result p/yaml-kvs
+"foo: \"bar\"
+date: 2016-04-01
+")
+                `(,(yaml-kv 'foo "bar")
+                 ,(yaml-kv 'date (mk-date 01 04 2016)))
+                ))
+
+
 
 (define p/yaml-block
   (parser-one
@@ -132,8 +172,8 @@
    (~> p/yaml-kvs)
    BEGIN-END))
 
-(parse-result
-p/yaml-block
+#;(parse-result
+ p/yaml-block
  "---
 layout: post
 title: \"Thinking with types, an example\"
