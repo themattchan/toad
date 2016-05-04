@@ -160,11 +160,13 @@
   (run parse-yaml-kv1
        ("foo: \"bar\""
         => (pair 'foo "bar"))
+
        ("things:\n- ident1\n- \"this is a long string\"\n- \"lorem ipsum dolor sit amet\"\n"
         => (pair 'things
                  (list 'ident1
                        "this is a long string"
                        "lorem ipsum dolor sit amet")))
+
        ("foo:   \n" => null)))
 
 
@@ -181,29 +183,27 @@
 (module+ test
   (run p/yaml-kvs
        ("foo: \"bar\"\ndate: 2016-04-01\n"
-       => (list (pair 'foo "bar")
-                (pair 'date (mk-date 01 04 2016))))
-       ("foo:   \nbar: frak" => (list (pair 'bar 'frak)))
-       ("bar1: frak\nfoo:   \nbar2: frak" => (list (pair 'bar1 'frak) (pair 'bar2 'frak)))))
+        => (list
+            (pair 'foo "bar")
+            (pair 'date (mk-date 01 04 2016))))
+       
+       ("foo:   \nbar: frak"
+        => (list (pair 'bar 'frak)))
+
+       ("bar1: frak\nfoo:   \nbar2: frak"
+        => (list (pair 'bar1 'frak)
+                 (pair 'bar2 'frak)))))
 
 (define p/yaml-block
   (between BEGIN-END BEGIN-END p/yaml-kvs))
 
 (module+ test
   (run p/yaml-block
-       ("---
-layout: post
-title: \"My great blog post\"
-subtitle:
-date: 2014-12-12
-updated: 2016-03-12
-tags:
-- functional-programming
----
-" => (list
-      (pair 'layout 'post)
-      (pair 'title "My great blog post")
-      (pair 'date (mk-date 12 12 2014))
-      (pair 'updated (mk-date 12 3 2016))
-      (pair 'tags '(functional-programming))))))
+       ("---\nlayout: post\ntitle: \"My great blog post\"\nsubtitle:\\ndate: 2014-12-12\nupdated: 2016-03-12\ntags:\n- functional-programming\n---"
+        => (list
+            (pair 'layout 'post)
+            (pair 'title "My great blog post")
+            (pair 'date (mk-date 12 12 2014))
+            (pair 'updated (mk-date 12 3 2016))
+            (pair 'tags '(functional-programming))))))
 
