@@ -48,7 +48,7 @@
         0 0 #f 0))
 
 (struct pair (key val) #:transparent)
-(struct metadata (data) #:transparant)     ; put into a hash map
+(struct metadata (data) #:transparent)     ; put into a hash map
 
 ; Parsers
 
@@ -82,6 +82,12 @@
                              (char #\")
                              (char #\')))) 
    (return (list->string str))))
+
+(module+ test
+  (run p/string-lit
+       ("\"double 'quoted' string\""   => "double 'quoted' string")
+       ("\'single \"quoted\" string\'" => "single \"quoted\" string")))
+
 
 (define p/num-lit       
   (let ([p/number (many1 $digit)])        
@@ -148,9 +154,9 @@
                                 (try p/num-lit)
                                 (try p/string-lit))))
                  
-                 (return null)))
-                 
+                 (return null)))                
    $spaces
+   
    (return
     (if (not (eq? null val))
         (pair id val)
@@ -199,7 +205,7 @@
 
 (module+ test
   (run p/yaml-block
-       ("---\nlayout: post\ntitle: \"My great blog post\"\nsubtitle:\\ndate: 2014-12-12\nupdated: 2016-03-12\ntags:\n- functional-programming\n---"
+       ("---\nlayout: post\ntitle: \"My great blog post\"\nsubtitle:    \ndate: 2014-12-12\nupdated: 2016-03-12\ntags:\n- functional-programming\n---"
         => (list
             (pair 'layout 'post)
             (pair 'title "My great blog post")
