@@ -48,6 +48,7 @@
         0 0 #f 0))
 
 (struct pair (key val) #:transparent)
+(struct metadata (data) #:transparant)     ; put into a hash map
 
 ; Parsers
 
@@ -126,7 +127,7 @@
       ; (<or> (try $eol) (try $eof))
        ))
     
-    (sepBy1 parse-yaml-list1 $eol)))
+    (many1 (parser-one (~> parse-yaml-list1) $spaces))))
 
 
 (module+ test  
@@ -134,24 +135,6 @@
        ("- foo\n- bar\n- \"hello world\"\n"
         => '(foo bar "hello world"))))
 
-#;(define parse-yaml-kv1
-  (>>= p/ident
-       (λ (id)
-         (>>= (>> (char #\:)
-                  (<or>
-                   (try (>>= (try (>> $spaces p/yaml-list))
-                             (λ (ls) (return (cons id ls)))))
-                   
-                   (try (>>= (>> $blanks
-                                 (<or>
-                                  (try p/ident)
-                                  (try p/date)
-                                  (try p/num-lit)
-                                  (try p/string-lit)))
-                             (λ (atom) (return (cons id atom)))))))
-              (λ (ret)
-                (>>= (try (skipMany1 (>> $blanks (<or> (try $eol) (try $eof)))))
-                     (return ret)))))))
 
 (define parse-yaml-kv1
   (parser-compose
@@ -197,7 +180,7 @@
 
 (module+ test
   (run p/yaml-kvs
-       #;("foo: \"bar\"\ndate: 2016-04-01\n"
+       ("foo: \"bar\"\ndate: 2016-04-01\n"
        => (list (pair 'foo "bar")
                 (pair 'date (mk-date 01 04 2016))))
        ("foo:   \nbar: frak" => (list (pair 'bar 'frak)))
@@ -206,16 +189,21 @@
 (define p/yaml-block
   (between BEGIN-END BEGIN-END p/yaml-kvs))
 
-(parse-result
- p/yaml-block
-"---
+(module+ test
+  (run p/yaml-block
+       ("---
 layout: post
-title: \"Thinking with types, an example\"
+title: \"My great blog post\"
 subtitle:
 date: 2014-12-12
 updated: 2016-03-12
 tags:
 - functional-programming
 ---
-")
- 
+" => (list
+      (pair 'layout 'post)
+      (pair 'title "My great blog post")
+      (pair 'date (mk-date 12 12 2014))
+      (pair 'updated (mk-date 12 3 2016))
+      (pair 'tags '(functional-programming))))))
+
