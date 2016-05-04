@@ -16,28 +16,25 @@
          ...)]))
   )
 
-;(parse-result  (>> (repeat 3 (char #\-)) $newline) "---\n")
-
 ; YAML used in my Jekyll posts:
 ;
 ; <id>     ::= [a-z][\w|-]*
-; <string> ::= \".*\"
+; <string> ::= \"[^\"]*\" | \'[^\']*\'
 ; <num>    ::= \d+(\.\d+)?
 ; <date>   ::= \d{4}-\d{2}-\d{2}
 ;
-; <list-item>
-;          ::= \- [<id>|<string>|<num>|<date>]$
-; <list>   ::= <list-item>*
+; <list-item> ::= \- [<id>|<string>|<num>|<date>]$
+; <list>      ::= <list-item>+
 ;
-; <kvs> ::= <id>: $    -- id with nothing
-;        |  <id>: <id>
-;        |  <id>: <string>
-;        |  <id>: <date>
-;        |  <id>: \newline
-;             <list>
+; <kv> ::= <id>: $eol         -- id with nothing
+;       |  <id>: <id>
+;       |  <id>: <string>
+;       |  <id>: <date>
+;       |  <id>: \newline
+;          <list>
 ;
 ; <YAML> ::= ---
-;            <kvs>*
+;            <kv>*
 ;            ---
 
 ; Helpers and data structures
@@ -52,7 +49,7 @@
 
 ; Parsers
 
-(define BEGIN-END (>> (parser-rep 3 (char #\-)) $eol))
+(define YAML_DELIMIT (>> (parser-rep 3 (char #\-)) $eol))
 
 (define p/ident
   ; idents are atoms
@@ -88,7 +85,6 @@
        ("\"double 'quoted' string\""   => "double 'quoted' string")
        ("\'single \"quoted\" string\'" => "single \"quoted\" string")))
 
-
 (define p/num-lit       
   (let ([p/number (many1 $digit)])        
     (>>= p/number
@@ -100,7 +96,7 @@
 
 (module+ test
   (run p/num-lit
-       ("1234" => 1234)
+       ("1234"      => 1234)
        ("1234.5678" => 1234.5678)))
 
 (define p/date
@@ -133,12 +129,15 @@
       ; (<or> (try $eol) (try $eof))
        ))
     
-    (many1 (parser-one (~> parse-yaml-list1) $spaces))))
+    (many1 (parser-one (~> parse-yaml-list1) $spaces)
+           #:till YAML_DELIMIT #:or <any>)))
 
 
 (module+ test  
   (run p/yaml-list
        ("- foo\n- bar\n- \"hello world\"\n"
+        => '(foo bar "hello world"))
+       ("- foo\n- bar\n- \"hello world\"\n---"
         => '(foo bar "hello world"))))
 
 
@@ -201,7 +200,7 @@
                  (pair 'bar2 'frak)))))
 
 (define p/yaml-block
-  (between BEGIN-END BEGIN-END p/yaml-kvs))
+  (between YAML_DELIMIT YAML_DELIMIT p/yaml-kvs))
 
 (module+ test
   (run p/yaml-block
