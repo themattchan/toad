@@ -16,7 +16,6 @@
          ...)]))
   )
 
-
 ;(parse-result  (>> (repeat 3 (char #\-)) $newline) "---\n")
 
 ; YAML used in my Jekyll posts:
@@ -48,7 +47,7 @@
         d m y
         0 0 #f 0))
 
-;(struct yaml-kv (key val) #:transparent)
+(struct pair (key val) #:transparent)
 
 ; Parsers
 
@@ -120,11 +119,11 @@
       (parser-one
        (char #\-) $blanks
        ; keeps squiggle arrow only
-       (~> (<or> p/ident
-                 p/date
-                 p/num-lit                 
-                 p/string-lit))
-        (try (<or> $eol $eof))))
+       (~> (<or> (try p/ident)
+                 (try p/date)
+                 (try p/num-lit)
+                 (try p/string-lit)))
+       (<or> (try $eol) (try $eof))))
     
     (many1 parse-yaml-list1)))
 
@@ -135,67 +134,73 @@
         => '(foo bar "hello world"))))
 
 #;(define parse-yaml-kv1
-  (parser-compose
-   (k <- p/ident)
-   (char #\:)
-   $blanks
-   (v <- (<or>
-          (<any> (>> $eol p/yaml-list)
-                p/ident
-                p/date
-                p/num-lit                  
-                p/string-lit)
-          (>> $eol FAIL)
-          (>> $eof FAIL)))
-
-   
-;   (try (<or> $eol $eof))
-
-   
-   (return (success? v (cons k v)))))
-
-(define parse-yaml-kv1
   (>>= p/ident
        (λ (id)
-         (>> (char #\:)
-             (<or>
-              (try (>>= (try (>> $spaces p/yaml-list))
-                        (λ (ls) (return (cons id ls)))))
-              
-              (try (>>= (>> $blanks
-                            (<or>
-                             (try p/ident)
-                             (try p/date)
-                             (try p/num-lit)
-                             (try p/string-lit)))
-                        (λ (atom) (return (cons id atom)))))
-              
-              (try (>>= (try (<or> (>> $blanks $eol)
-                                   (>> $blanks $eof)))
-                        (const (return 'fail)))))))))
+         (>>= (>> (char #\:)
+                  (<or>
+                   (try (>>= (try (>> $spaces p/yaml-list))
+                             (λ (ls) (return (cons id ls)))))
+                   
+                   (try (>>= (>> $blanks
+                                 (<or>
+                                  (try p/ident)
+                                  (try p/date)
+                                  (try p/num-lit)
+                                  (try p/string-lit)))
+                             (λ (atom) (return (cons id atom)))))))
+              (λ (ret)
+                (>>= (try (skipMany1 (>> $blanks (<or> (try $eol) (try $eof)))))
+                     (return ret)))))))
 
+(define parse-yaml-kv1
+  (parser-compose
+   (id <- p/ident)
+   (char #\:)
+   (val <- (<or> (try (>> $spaces p/yaml-list))
+                 
+                 (try (>> $blanks
+                          (<or> (try p/ident)
+                                (try p/date)
+                                (try p/num-lit)
+                                (try p/string-lit))))
+                 
+                 (return null)))
+                 
+   $spaces
+   (return
+    (if (not (eq? null val))
+        (pair id val)
+        null))))   
+                 
 (module+ test
   (run parse-yaml-kv1
        ("foo: \"bar\""
-        => (cons 'foo "bar"))
+        => (pair 'foo "bar"))
        ("things:\n- ident1\n- \"this is a long string\"\n- \"lorem ipsum dolor sit amet\"\n"
-        => (cons 'things
+        => (pair 'things
                  (list 'ident1
                        "this is a long string"
                        "lorem ipsum dolor sit amet")))
        ("foo:   \n" => null)))
 
+
 (define p/yaml-kvs
   (>>= (many1 (parser-seq parse-yaml-kv1 (~ $spaces)))
-       (compose return list/mconcat)))
-         
+       (λ (kvs)
+         (return (foldr (λ (kv kvs)
+                          (if (not (eq? null (car kv)))
+                              (cons (car kv) kvs)
+                              kvs))
+                        '() kvs)))))
+
+
 (module+ test
   (run p/yaml-kvs
-       ("foo: \"bar\"\ndate: 2016-04-01\n"
-       => (list (cons 'foo "bar")
-                (cons 'date (mk-date 01 04 2016))))
-       ("foo:   \nbar: frak" => `(,(cons 'bar 'frak)))
-       ("bar: frak\nfoo:   \nbar: frak" => (list (cons 'bar 'frak) (cons 'bar 'frak)))))
+       #;("foo: \"bar\"\ndate: 2016-04-01\n"
+       => (list (pair 'foo "bar")
+                (pair 'date (mk-date 01 04 2016))))
+       ("foo:   \nbar: frak" => (list (pair 'bar 'frak)))
+       ("bar1: frak\nfoo:   \nbar2: frak" => (list (pair 'bar1 'frak) (pair 'bar2 'frak)))))
 
 (define p/yaml-block
   (between BEGIN-END BEGIN-END p/yaml-kvs))

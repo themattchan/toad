@@ -23,10 +23,14 @@
       ret
       '()))
 
+; List is monoid
+; (null) is mzero
 (define (list/mconcat xs)
-  (foldl (λ (x a) (if (not (eq? '(()) x)) (append a x) a))
-         '()
-         xs))
+  (foldr (λ (x a)
+                          (if (not (eq? null (car x)))
+                              (cons (car x) a)
+                              a))
+                        '() xs))
 
 ; parsack's $space and $spaces use the predicate char-whitespace?
 ; which encompasses ALL whitespace chars.
