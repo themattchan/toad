@@ -123,9 +123,10 @@
                  (try p/date)
                  (try p/num-lit)
                  (try p/string-lit)))
-       (<or> (try $eol) (try $eof))))
+      ; (<or> (try $eol) (try $eof))
+       ))
     
-    (many1 parse-yaml-list1)))
+    (sepBy1 parse-yaml-list1 $eol)))
 
 
 (module+ test  
@@ -205,7 +206,7 @@
 (define p/yaml-block
   (between BEGIN-END BEGIN-END p/yaml-kvs))
 
-#;(parse-result
+(parse-result
  p/yaml-block
 "---
 layout: post
