@@ -172,21 +172,18 @@
               
               (try (>>= (try (<or> (>> $blanks $eol)
                                    (>> $blanks $eof)))
-                        (const (return null)))))))))
-
-;)))))
-       
+                        (const (return 'fail)))))))))
 
 (module+ test
   (run parse-yaml-kv1
        ("foo: \"bar\""
         => (cons 'foo "bar"))
-       #;("things:\n- ident1\n- \"this is a long string\"\n- \"lorem ipsum dolor sit amet\"\n"
+       ("things:\n- ident1\n- \"this is a long string\"\n- \"lorem ipsum dolor sit amet\"\n"
         => (cons 'things
                  (list 'ident1
                        "this is a long string"
                        "lorem ipsum dolor sit amet")))
-       #;("foo:   \n" => '(()))))
+       ("foo:   \n" => null)))
 
 (define p/yaml-kvs
   (>>= (many1 (parser-seq parse-yaml-kv1 (~ $spaces)))

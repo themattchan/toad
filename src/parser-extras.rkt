@@ -24,7 +24,9 @@
       '()))
 
 (define (list/mconcat xs)
-  (apply append xs))
+  (foldl (λ (x a) (if (not (eq? '(()) x)) (append a x) a))
+         '()
+         xs))
 
 ; parsack's $space and $spaces use the predicate char-whitespace?
 ; which encompasses ALL whitespace chars.
