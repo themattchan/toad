@@ -134,12 +134,11 @@
        ("- foo\n- bar\n- \"hello world\"\n"
         => '(foo bar "hello world"))))
 
-(define parse-yaml-kv1
+#;(define parse-yaml-kv1
   (parser-compose
    (k <- p/ident)
    (char #\:)
    $blanks
-   
    (v <- (<or>
           (<any> (>> $eol p/yaml-list)
                 p/ident
@@ -154,6 +153,29 @@
 
    
    (return (success? v (cons k v)))))
+
+(define parse-yaml-kv1
+  (>>= p/ident
+       (λ (id)
+         (>> (char #\:)
+             (<or>
+              (try (>>= (try (>> $spaces p/yaml-list))
+                        (λ (ls) (return (cons id ls)))))
+              
+              (try (>>= (>> $blanks
+                            (<or>
+                             (try p/ident)
+                             (try p/date)
+                             (try p/num-lit)
+                             (try p/string-lit)))
+                        (λ (atom) (return (cons id atom)))))
+              
+              (try (>>= (try (<or> (>> $blanks $eol)
+                                   (>> $blanks $eof)))
+                        (const (return null)))))))))
+
+;)))))
+       
 
 (module+ test
   (run parse-yaml-kv1
@@ -179,7 +201,7 @@
        ("bar: frak\nfoo:   \nbar: frak" => (list (cons 'bar 'frak) (cons 'bar 'frak)))))
 
 (define p/yaml-block
-  (parser-one BEGIN-END (~> p/yaml-kvs) BEGIN-END))
+  (between BEGIN-END BEGIN-END p/yaml-kvs))
 
 #;(parse-result
  p/yaml-block
