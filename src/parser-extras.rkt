@@ -25,3 +25,9 @@
 
 (define (list/mconcat xs)
   (apply append xs))
+
+; parsack's $space and $spaces use the predicate char-whitespace?
+; which encompasses ALL whitespace chars.
+; Instead, want only to eat HORIZONTAL whitespace (unicode class Zs or #\tab)
+(define $blank (<?> (satisfy char-blank?) "horizontal space"))
+(define $blanks (<?> (skipMany $blank) "horizontal white space"))

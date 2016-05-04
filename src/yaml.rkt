@@ -118,13 +118,13 @@
   (let ()
     (define parse-yaml-list1
       (parser-one
-       (char #\-) $space
+       (char #\-) $blanks
        ; keeps squiggle arrow only
        (~> (<or> p/ident
                  p/date
                  p/num-lit                 
                  p/string-lit))
-       $eol))
+        (try (<or> $eol $eof))))
     
     (many1 parse-yaml-list1)))
 
@@ -138,21 +138,33 @@
   (parser-compose
    (k <- p/ident)
    (char #\:)
-   $spaces ; shouldn't be spaces... newlines are signifcant
-   (v <- (<or> (>> $eol p/yaml-list)
-               p/ident
-               p/date
-               p/num-lit                  
-               p/string-lit                           
-               (>> $eol FAIL)
-               ))
-   $spaces
+   $blanks
+   
+   (v <- (<or>
+          (<any> (>> $eol p/yaml-list)
+                p/ident
+                p/date
+                p/num-lit                  
+                p/string-lit)
+          (>> $eol FAIL)
+          (>> $eof FAIL)))
+
+   
+;   (try (<or> $eol $eof))
+
+   
    (return (success? v (cons k v)))))
 
 (module+ test
   (run parse-yaml-kv1
        ("foo: \"bar\""
-        => (cons 'foo "bar"))))
+        => (cons 'foo "bar"))
+       #;("things:\n- ident1\n- \"this is a long string\"\n- \"lorem ipsum dolor sit amet\"\n"
+        => (cons 'things
+                 (list 'ident1
+                       "this is a long string"
+                       "lorem ipsum dolor sit amet")))
+       #;("foo:   \n" => '(()))))
 
 (define p/yaml-kvs
   (>>= (many1 (parser-seq parse-yaml-kv1 (~ $spaces)))
@@ -162,12 +174,14 @@
   (run p/yaml-kvs
        ("foo: \"bar\"\ndate: 2016-04-01\n"
        => (list (cons 'foo "bar")
-                (cons 'date (mk-date 01 04 2016))))))
+                (cons 'date (mk-date 01 04 2016))))
+       ("foo:   \nbar: frak" => `(,(cons 'bar 'frak)))
+       ("bar: frak\nfoo:   \nbar: frak" => (list (cons 'bar 'frak) (cons 'bar 'frak)))))
 
 (define p/yaml-block
   (parser-one BEGIN-END (~> p/yaml-kvs) BEGIN-END))
 
-(parse-result
+#;(parse-result
  p/yaml-block
 "---
 layout: post
