@@ -1,11 +1,13 @@
 #lang racket
 
-(require racket/function)
-(require parsack)
-(require (for-syntax racket/function))
+(require (rename-in racket [string rkt:string])
+         racket/function
+         parsack
+
+         (for-syntax racket/function))
 
 (provide (all-defined-out)
-         (all-from-out parsack))
+         (all-from-out parsack racket))
 
 (define-syntax (parser-rep stx)
   (syntax-case stx ()
@@ -14,23 +16,6 @@
        #`(parser-seq #,@reps))]))
 
 (define ret-number (compose string->number list->string))
-
-(define FAIL (const 'fail))
-
-; monoid
-(define (success? v ret)
-  (if (not (eq? 'fail v))
-      ret
-      '()))
-
-; List is monoid
-; (null) is mzero
-(define (list/mconcat xs)
-  (foldr (λ (x a)
-                          (if (not (eq? null (car x)))
-                              (cons (car x) a)
-                              a))
-                        '() xs))
 
 ; parsack's $space and $spaces use the predicate char-whitespace?
 ; which encompasses ALL whitespace chars.

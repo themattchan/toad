@@ -1,10 +1,12 @@
 #lang racket
 
-(require "parser-extras.rkt"
+(require ;net/url
+         scribble/base
+         "parser-extras.rkt"
          "yaml.rkt")
 
 ; ------------------------------------------------------------------------------
-; Parse Markdown into a readable sexpr format
+; Parse Markdown into Scribble.
 ;
 ; MILESTONE 1: be able to migrate my old blog posts
 ;   - write grammar for this sexpr.
@@ -16,7 +18,30 @@
 
 ; GRAMMAR
 ;
-; 
+;- inline html
+;- escaping & characters
+;- paragraphs   --> para
+;- headings     --> 
+;- bold/italic... etc
+;- blockquotes
+;- backticks
+;- codeblocks
+;- footnotes
+;- lists
+;- links
+
+(define p/link ...)
+(define p/url-literal ...)
+(define p/itemize ...)
+(define p/enumerate ...)
+(define p/pound-heading ...)
+(define p/underline-heading ...)
+(define p/inline-code-escape ...)
+(define p/backtick-code-block ...)
+(define p/paragraph ...)
+(define p/bold ...)
+(define p/italic ...)
+(define p/underline ...)
 
 
 #;(define markdown-parser ...)

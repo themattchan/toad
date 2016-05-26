@@ -1,0 +1,16 @@
+(toad
+ (sitename "My Great Blog")
+ (author "Bugs Bunny")
+
+ ;; relative to loc of this config file
+ (input-dir ".")
+ ;; everything source related is relative to input-dir
+ (post-dir "_posts")
+ (draft-dir (post-dir "_drafts"))
+
+ (output-dir "_site") 
+ ;; everything output related is relative to output-dir
+ (blog-subdir "blog")
+ (blog-permalink-prefix (#:year #:month)) ; these keywords should be automatically resolvable
+ )
+
